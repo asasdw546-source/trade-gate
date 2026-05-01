@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trade Gate">
+<title>Trade Gate</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface2: #1a1a1a;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #f0f0f0;
+  --muted: #666;
+  --green: #22c55e;
+  --green-dim: rgba(34,197,94,0.12);
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.12);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.12);
+  --blue: #3b82f6;
+  --safe-top: env(safe-area-inset-top, 44px);
+  --safe-bottom: env(safe-area-inset-bottom, 20px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Noto Sans Thai', sans-serif; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+
+.top-bar {
+  padding: calc(var(--safe-top) + 8px) 20px 12px;
+  background: var(--bg);
+  border-bottom: 0.5px solid var(--border);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.app-title { font-family: 'DM Mono', monospace; font-size: 15px; letter-spacing: 0.1em; color: var(--muted); }
+.gate-badge {
+  font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 20px;
+  transition: all 0.3s;
+}
+.badge-wait { background: var(--surface2); color: var(--muted); }
+.badge-go { background: var(--green-dim); color: var(--green); }
+.badge-warn { background: var(--amber-dim); color: var(--amber); }
+.badge-stop { background: var(--red-dim); color: var(--red); }
+
+.scroll-area {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 16px 16px calc(var(--safe-bottom) + 16px);
+}
+
+.section { margin-bottom: 12px; }
+.section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4px; margin-bottom: 6px;
+}
+.section-name { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.section-prog { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+
+.card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+  transition: opacity 0.2s;
+}
+.card.locked { opacity: 0.35; pointer-events: none; }
+
+.mood-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; }
+.mood-btn {
+  padding: 14px 8px; text-align: center; cursor: pointer;
+  border-right: 0.5px solid var(--border); font-size: 13px;
+  transition: background 0.15s; position: relative;
+  -webkit-user-select: none;
+}
+.mood-btn:last-child { border-right: none; }
+.mood-btn .icon { font-size: 20px; display: block; margin-bottom: 4px; }
+.mood-btn .lbl { font-size: 12px; color: var(--muted); display: block; }
+.mood-btn.sel-ok { background: var(--green-dim); }
+.mood-btn.sel-ok .lbl { color: var(--green); }
+.mood-btn.sel-warn { background: var(--amber-dim); }
+.mood-btn.sel-warn .lbl { color: var(--amber); }
+.mood-btn.sel-stop { background: var(--red-dim); }
+.mood-btn.sel-stop .lbl { color: var(--red); }
+
+.day-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-top: 0.5px solid var(--border);
+}
+.day-row label { font-size: 13px; color: var(--muted); flex: 1; }
+.day-btns { display: flex; gap: 6px; }
+.day-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: 0.5px solid var(--border2);
+  font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace;
+  background: var(--surface2); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.day-btn.w { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+.day-btn.l { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+
+.streak-warn {
+  margin: 0 16px 12px; padding: 10px 14px;
+  background: var(--red-dim); border: 0.5px solid rgba(239,68,68,0.3);
+  border-radius: 10px; font-size: 13px; color: var(--red); line-height: 1.5;
+  display: none;
+}
+
+.check-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 13px 16px; border-top: 0.5px solid var(--border);
+  cursor: pointer; transition: background 0.1s; -webkit-user-select: none;
+}
+.check-item:first-child { border-top: none; }
+.check-item:active { background: rgba(255,255,255,0.03); }
+
+.chk-box {
+  width: 20px; height: 20px; border-radius: 6px;
+  border: 1.5px solid var(--border2); flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.chk-box.on { background: var(--green); border-color: var(--green); }
+.chk-box.on::after {
+  content: ''; width: 11px; height: 6px;
+  border-left: 2px solid #fff; border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translate(0.5px, -1px); display: block;
+}
+
+.chk-text { flex: 1; }
+.chk-main { font-size: 14px; line-height: 1.4; }
+.chk-sub { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+
+.prog-bar {
+  height: 2px; background: var(--border);
+  margin: 0 16px 0; border-radius: 1px; overflow: hidden;
+}
+.prog-fill { height: 100%; background: var(--green); border-radius: 1px; transition: width 0.3s; width: 0%; }
+
+.gate-box {
+  margin: 16px; padding: 16px;
+  border-radius: 14px; text-align: center;
+  font-size: 14px; font-weight: 500; line-height: 1.5;
+  transition: all 0.3s;
+}
+.gate-wait { background: var(--surface2); color: var(--muted); border: 0.5px solid var(--border); }
+.gate-go { background: var(--green-dim); color: var(--green); border: 0.5px solid rgba(34,197,94,0.3); }
+.gate-warn { background: var(--amber-dim); color: var(--amber); border: 0.5px solid rgba(245,158,11,0.3); }
+.gate-stop { background: var(--red-dim); color: var(--red); border: 0.5px solid rgba(239,68,68,0.3); }
+
+.reset-btn {
+  display: block; width: calc(100% - 32px); margin: 0 16px 8px;
+  padding: 13px; border-radius: 12px; border: 0.5px solid var(--border);
+  background: transparent; color: var(--muted); font-size: 14px;
+  font-family: 'Noto Sans Thai', sans-serif; cursor: pointer;
+  -webkit-user-select: none;
+}
+.reset-btn:active { background: var(--surface2); }
+
+.journal-area {
+  margin: 0 16px 16px;
+}
+.journal-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; padding: 0 2px; }
+.journal-input {
+  width: 100%; background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; color: var(--text);
+  font-family: 'Noto Sans Thai', sans-serif; font-size: 14px;
+  resize: none; outline: none; line-height: 1.5;
+  -webkit-appearance: none;
+}
+.journal-input:focus { border-color: var(--border2); }
+.journal-input::placeholder { color: var(--muted); }
+
+.divider { height: 0.5px; background: var(--border); margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <span class="app-title">TRADE GATE</span>
+  <span class="gate-badge badge-wait" id="topBadge">ยังไม่พร้อม</span>
+</div>
+
+<div class="scroll-area">
+
+  <div class="section">
+    <div class="section-head">
+      <span class="section-name">สภาวะวันนี้</span>
+    </div>
+    <div class="card">
+      <div class="mood-grid">
+        <div class="mood-btn" onclick="setMood('ok',this)">
+          <span class="icon">🧘</span>
+          <span class="lbl">พร้อม</span>
+        </div>
+        <div class="mood-btn" onclick="setMood('warn',this)">
+          <span class="icon">⚡</span>
+          <span class="lbl">ระวัง</span>
+        </div>
+        <div class="mood-btn" onclick="setMood('stop',this)">
+          <span class="icon">🚫</span>
+          <span class="lbl">ไม่พร้อม</span>
+        </div>
+      </div>
+      <div class="day-row">
+        <label>ผล 3 วันล่าสุด</label>
+        <div class="day-btns">
+          <button class="day-btn" id="d2" onclick="tap('d2')">D-2</button>
+          <button class="day-btn" id="d1" onclick="tap('d1')">D-1</button>
+          <button class="day-btn" id="d0" onclick="tap('d0')">เมื่อวาน</button>
+        </div>
+      </div>
+    </div>
+    <div class="streak-warn" id="streakWarn">
+      ชนะ 3 วันติด — ego กำลังเข้ามา<br>ทำตามระบบ 100% ลด size ลงครึ่ง
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="section-name">HTF Analysis — H1/M30</span>
+      <span class="section-prog" id="htfProg">0/3</span>
+    </div>
+    <div class="card locked" id="htfCard">
+      <div class="prog-bar"><div class="prog-fill" id="htfFill"></div></div>
+      <div class="check-item" onclick="tog('h1')">
+        <div class="chk-box" id="cb-h1"></div>
+        <div class="chk-text">
+          <div class="chk-main">HTF Action — BOS / CHoCH ชัดเจน</div>
+          <div class="chk-sub">ดูตั้งแต่ W1→D1→H4→H1 · WHO From TO</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="tog('h2')">
+        <div class="chk-box" id="cb-h2"></div>
+        <div class="chk-text">
+          <div class="chk-main">HTF Zone + IRL ชัดเจน</div>
+          <div class="chk-sub">Demand ใน Discount · Supply ใน Premium</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="tog('h3')">
+        <div class="chk-box" id="cb-h3"></div>
+        <div class="chk-text">
+          <div class="chk-main">ไม่ขัดแย้งเทรนด์หลัก</div>
+          <div class="chk-sub">Up trend = Demand · Down trend = Supply</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="section-name">LTF Confirm — M5/M1</span>
+      <span class="section-prog" id="ltfProg">0/3</span>
+    </div>
+    <div class="card locked" id="ltfCard">
+      <div class="prog-bar"><div class="prog-fill" id="ltfFill"></div></div>
+      <div class="check-item" onclick="tog('l1')">
+        <div class="chk-box" id="cb-l1"></div>
+        <div class="chk-text">
+          <div class="chk-main">LTF CHoCH เกิดขึ้นแล้ว</div>
+          <div class="chk-sub">รอสัญญาณ CHoCH ใน M5/M1 เท่านั้น</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="tog('l2')">
+        <div class="chk-box" id="cb-l2"></div>
+        <div class="chk-text">
+          <div class="chk-main">Entry = Strong Zone + IRL</div>
+          <div class="chk-sub">Engulfing กินไส้ผ่าน · ยิ่งไม่มีไส้ยิ่งแข็งแรง</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="tog('l3')">
+        <div class="chk-box" id="cb-l3"></div>
+        <div class="chk-text">
+          <div class="chk-main">IRL ถูก Sweep หมดแล้ว</div>
+          <div class="chk-sub">Liquidity ก่อนถึงโซนถูกกวาดครบ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="section-name">Money Management</span>
+      <span class="section-prog" id="mmProg">0/4</span>
+    </div>
+    <div class="card locked" id="mmCard">
+      <div class="prog-bar"><div class="prog-fill" id="mmFill"></div></div>
+      <div class="check-item" onclick="tog('m1')">
+        <div class="chk-box" id="cb-m1"></div>
+        <div class="chk-text">
+          <div class="chk-main">Risk ไม่เกิน 2% ของพอร์ต</div>
+          <div class="chk-sub">พอร์ต &lt;50K = max 3% · 50K+ = max 2%</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="tog('m2')">
+        <div class="chk-box" id="cb-m2"></div>
+        <div class="chk-text">
+          <div class="chk-main">SL วางที่ Fibo 1.272</div>
+          <div class="chk-sub">อย่าแคบเกิน · ถ้ามันจะมา ยังไงก็มา</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="tog('m3')">
+        <div class="chk-box" id="cb-m3"></div>
+        <div class="chk-text">
+          <div class="chk-main">TP ตาม ERL / D&S / Liquidity · RR &gt; 3</div>
+          <div class="chk-sub">เข้าตาม IRL · TP ตาม ERL เท่านั้น</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="tog('m4')">
+        <div class="chk-box" id="cb-m4"></div>
+        <div class="chk-text">
+          <div class="chk-main">วันนี้ยังไม่ครบ 2 ออเดอร์</div>
+          <div class="chk-sub">กระสุน 2 นัดต่อวัน · เทรด 1% รอ 99%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gate-box gate-wait" id="gateBox">
+    เลือกสภาวะก่อนเทรดก่อน
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">รีเซ็ตสำหรับวันใหม่</button>
+
+  <div class="journal-area">
+    <div class="journal-label">บันทึกก่อนเทรด</div>
+    <textarea class="journal-input" id="journal" rows="3" placeholder="วางแผนวันนี้ว่าอะไร..."></textarea>
+  </div>
+
+</div>
+
+<script>
+var S = { mood: null, days: {d2:0,d1:0,d0:0}, c: {h1:0,h2:0,h3:0,l1:0,l2:0,l3:0,m1:0,m2:0,m3:0,m4:0} };
+
+function load() {
+  var saved = localStorage.getItem('tg_state');
+  if (saved) {
+    try {
+      var d = JSON.parse(saved);
+      if (d.date === today()) { S = d.state; render(); }
+    } catch(e) {}
+  }
+  var j = localStorage.getItem('tg_journal_' + today());
+  if (j) document.getElementById('journal').value = j;
+}
+
+function save() {
+  localStorage.setItem('tg_state', JSON.stringify({ date: today(), state: S }));
+}
+
+function today() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function setMood(m, el) {
+  S.mood = m;
+  document.querySelectorAll('.mood-btn').forEach(b => b.className = 'mood-btn');
+  el.className = 'mood-btn sel-' + m;
+  save(); render();
+}
+
+function tap(id) {
+  var v = S.days[id];
+  S.days[id] = v === 0 ? 1 : v === 1 ? -1 : 0;
+  save(); render();
+}
+
+function tog(k) {
+  S.c[k] = S.c[k] ? 0 : 1;
+  save(); render();
+}
+
+function render() {
+  var days = ['d2','d1','d0'];
+  days.forEach(function(id) {
+    var b = document.getElementById(id);
+    var v = S.days[id];
+    b.textContent = v === 1 ? 'W' : v === -1 ? 'L' : id === 'd2' ? 'D-2' : id === 'd1' ? 'D-1' : '어제';
+    b.textContent = v === 1 ? 'W' : v === -1 ? 'L' : id === 'd0' ? 'เมื่อวาน' : id;
+    b.className = 'day-btn' + (v === 1 ? ' w' : v === -1 ? ' l' : '');
+  });
+
+  var wins = Object.values(S.days).filter(function(v){ return v === 1; }).length;
+  document.getElementById('streakWarn').style.display = wins >= 3 ? 'block' : 'none';
+
+  var htf = ['h1','h2','h3'];
+  var ltf = ['l1','l2','l3'];
+  var mm = ['m1','m2','m3','m4'];
+  var htfN = htf.filter(function(k){ return S.c[k]; }).length;
+  var ltfN = ltf.filter(function(k){ return S.c[k]; }).length;
+  var mmN = mm.filter(function(k){ return S.c[k]; }).length;
+  var htfDone = htfN === 3;
+  var ltfDone = ltfN === 3;
+  var mmDone = mmN === 4;
+
+  document.getElementById('htfProg').textContent = htfN + '/3';
+  document.getElementById('ltfProg').textContent = ltfN + '/3';
+  document.getElementById('mmProg').textContent = mmN + '/4';
+  document.getElementById('htfFill').style.width = Math.round(htfN/3*100) + '%';
+  document.getElementById('ltfFill').style.width = Math.round(ltfN/3*100) + '%';
+  document.getElementById('mmFill').style.width = Math.round(mmN/4*100) + '%';
+
+  Object.keys(S.c).forEach(function(k) {
+    var el = document.getElementById('cb-' + k);
+    if (el) el.className = 'chk-box' + (S.c[k] ? ' on' : '');
+  });
+
+  var moodReady = S.mood === 'ok' || S.mood === 'warn';
+  document.getElementById('htfCard').className = 'card' + (moodReady ? '' : ' locked');
+  document.getElementById('ltfCard').className = 'card' + (moodReady && htfDone ? '' : ' locked');
+  document.getElementById('mmCard').className = 'card' + (moodReady && htfDone && ltfDone ? '' : ' locked');
+
+  var gate = document.getElementById('gateBox');
+  var badge = document.getElementById('topBadge');
+  var allDone = htfDone && ltfDone && mmDone;
+
+  if (!S.mood) {
+    setGate('wait', 'เลือกสภาวะก่อนเทรดก่อน', 'ยังไม่พร้อม');
+  } else if (S.mood === 'stop') {
+    setGate('stop', '🚫 วันนี้ไม่พร้อม\nปิดกราฟ พักผ่อน กลับมาพรุ่งนี้', 'หยุดเทรด');
+  } else if (allDone && S.mood === 'ok' && wins < 3) {
+    setGate('go', '✓ พร้อมเทรด\nวิเคราะห์ 10% · ปล่อยตลาด 90%', 'พร้อมแล้ว');
+  } else if (allDone && (S.mood === 'warn' || wins >= 3)) {
+    setGate('warn', '⚡ เทรดได้ แต่ระวัง\nลด size ครึ่งนึง · แพ้ครั้งแรกให้หยุด', 'ระวัง');
+  } else if (!S.mood || !moodReady) {
+    setGate('wait', 'เลือกสภาวะก่อน', 'ยังไม่พร้อม');
+  } else if (!htfDone) {
+    setGate('wait', 'รอ HTF Analysis ครบก่อน', 'รอ HTF');
+  } else if (!ltfDone) {
+    setGate('wait', 'รอ LTF Confirm ก่อน', 'รอ LTF');
+  } else {
+    setGate('wait', 'ตรวจ Money Management ก่อน', 'รอ MM');
+  }
+}
+
+function setGate(type, msg, badge) {
+  var g = document.getElementById('gateBox');
+  var b = document.getElementById('topBadge');
+  g.className = 'gate-box gate-' + type;
+  g.textContent = msg;
+  b.className = 'gate-badge badge-' + type;
+  b.textContent = badge;
+}
+
+function resetAll() {
+  if (!confirm('รีเซ็ตสำหรับวันใหม่?')) return;
+  S = { mood: null, days: {d2:0,d1:0,d0:0}, c: {h1:0,h2:0,h3:0,l1:0,l2:0,l3:0,m1:0,m2:0,m3:0,m4:0} };
+  document.querySelectorAll('.mood-btn').forEach(b => b.className = 'mood-btn');
+  document.getElementById('journal').value = '';
+  save(); render();
+}
+
+document.getElementById('journal').addEventListener('input', function() {
+  localStorage.setItem('tg_journal_' + today(), this.value);
+});
+
+load();
+render();
+</script>
+</body>
+</html>
